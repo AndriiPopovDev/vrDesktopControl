@@ -26,7 +26,20 @@ MButton::
         diffY := y2 - y1
         threshold := 15 ; High sensitivity
         
-        ; Identify the primary direction of the swipe
+        ; --- DIAGONAL GESTURES ---
+        ; diagonal swipe up-right -> open file explorer
+        if (diffX > threshold && diffY < -threshold)
+        {
+            Run, explorer.exe
+            return
+        }
+        ; diagonal swipe up-left -> close app
+        if (diffX < -threshold && diffY < -threshold) {
+            Send !{F4} ; Up-Left: Close App
+            return
+        }
+
+        ; --- STANDART GESTURES ---
         if (Abs(diffX) > Abs(diffY)) 
         {
             ; --- HORIZONTAL GESTURES SWITCH VIRTUAL DESK ---
