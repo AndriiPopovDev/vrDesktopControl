@@ -1,5 +1,5 @@
 ﻿; =================================================================
-; MOUSE WHEEL GESTURES (MX MASTER STYLE)
+; MOUSE WHEEL GESTURES (MX MASTER STYLE) - REFINED DIAGONALS
 ; Description: Hold Middle Mouse Button (Wheel) to swipe. 
 ; Quick click still works for browser tabs.
 ; =================================================================
@@ -9,12 +9,15 @@
 SetBatchLines, -1
 SendMode Input
 
+; --- SETTINGS ---
+threshold := 25      ; Minimal movement for a gesture
+diagonal_ratio := 0.6 ; Balance ratio (higher = stricter diagonals)
+
 MButton::
     ; Record the starting mouse position
     MouseGetPos, x1, y1
     
-    ; Wait for button release (T0.2 defines the hold threshold)
-    ; This allows normal middle-clicks in browsers
+    ; Hold threshold (T0.15 allows normal middle-clicks)
     KeyWait, MButton, T0.15 
     
     if (ErrorLevel) ; Button was held (Gesture Mode)
@@ -24,41 +27,48 @@ MButton::
         
         diffX := x2 - x1
         diffY := y2 - y1
-        threshold := 15 ; High sensitivity
+        absX := Abs(diffX)
+        absY := Abs(diffY)
         
-        ; --- DIAGONAL GESTURES ---
-        ; diagonal swipe up-right -> open file explorer
-        if (diffX > threshold && diffY < -threshold)
+        ; Ignore if movement is too small
+        if (absX < threshold && absY < threshold)
+            return
+
+        ; --- DIAGONAL LOGIC WITH PRECISION CHECK ---
+        ; Diagonal triggers only if X and Y movements are somewhat equal
+        ; absX/absY ratio should be between diagonal_ratio and 1/diagonal_ratio
+        if (absX > threshold && absY > threshold && absX * diagonal_ratio < absY && absY * diagonal_ratio < absX)
         {
-            Run, explorer.exe
-            return
-        }
-        ; diagonal swipe up-left -> close app
-        if (diffX < -threshold && diffY < -threshold) {
-            Send !{F4} ; Up-Left: Close App
-            return
+            if (diffX > 0 && diffY < 0) {
+                Run, explorer.exe ; Up-Right: File Explorer
+                return
+            }
+            if (diffX < 0 && diffY < 0) {
+                Send !{F4}         ; Up-Left: Close App
+                return
+            }
         }
 
-        ; --- STANDART GESTURES ---
-        if (Abs(diffX) > Abs(diffY)) 
+        ; --- STANDARD GESTURES ---
+        if (absX > absY) 
         {
-            ; --- HORIZONTAL GESTURES SWITCH VIRTUAL DESK ---
-            if (diffX > threshold)
+            ; Horizontal focus
+            if (diffX > 0)
                 Send ^#{Right} ; Swipe Right: Next Virtual Desktop
-            else if (diffX < -threshold)
+            else
                 Send ^#{Left}  ; Swipe Left: Previous Virtual Desktop
         }
         else 
         {
-            ; --- VERTICAL GESTURES  UP - TASK VIEW, DOWN - HIDE/UNHIDE WINDOWS---
-            if (diffY < -threshold)
+            ; Vertical focus
+            if (diffY < 0)
                 Send #{Tab}    ; Swipe Up: Task View
-            else if (diffY > threshold)
+            else
                 Send #d        ; Swipe Down: Show/Hide Desktop
         }
         return
     }
-    else ; Button was released quickly (Normal Middle Click)
+    else ; Normal Middle Click
     {
         Click, Middle
     }
